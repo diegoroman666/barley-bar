@@ -157,9 +157,11 @@ router.patch("/orders/:id", async (req, res) => {
 router.get("/orders/mesa/:mesa", async (req, res) => {
   const mesaNum = Number(req.params.mesa);
   const sessionId = await getMesaSessionId(mesaNum, { create: false });
-  if (!sessionId) return res.json([]);
+  // Los pedidos creados antes de existir el concepto de sesión no tienen
+  // sessionId; siguen siendo visibles hasta que la mesa se libere por
+  // primera vez (momento en que se crea una sesión real para esa mesa).
   const orders = (await listOrders())
-    .filter((o) => o.mesa === mesaNum && o.sessionId === sessionId)
+    .filter((o) => o.mesa === mesaNum && (sessionId ? o.sessionId === sessionId : !o.sessionId))
     .sort((a, b) => new Date(a.creado) - new Date(b.creado));
   res.json(orders);
 });
