@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Barley Terraza Restobar · Menú</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="js/tailwind-config.js"></script>
+<link rel="stylesheet" href="css/extra.css">
+</head>
+<body class="bg-barbg text-cream font-body min-h-screen">
+
+<div class="max-w-app mx-auto px-4 sticky top-0 z-40 bg-gradient-to-b from-barbg from-70% to-transparent pt-3.5">
+  <div class="flex items-center justify-between gap-3 py-1 pb-3">
+    <div>
+      <h1 class="font-display text-3xl tracking-wide text-gold uppercase leading-none">Barley</h1>
+      <span class="text-[11px] text-muted uppercase tracking-[2px]">Terraza Restobar · Rancagua</span>
+    </div>
+    <div class="flex flex-col items-end gap-1">
+      <span class="text-[10px] text-muted uppercase tracking-[1.5px]">Tu mesa</span>
+      <button id="capBtn" class="cap relative w-14 h-14 rounded-full flex items-center justify-center border-0 cursor-pointer">
+        <b id="mesaNum" class="relative z-10 font-mono2 font-bold text-barbg text-lg bg-cream w-8 h-8 rounded-full flex items-center justify-center">?</b>
+      </button>
+    </div>
+  </div>
+  <div id="catnav" class="flex gap-2 overflow-x-auto no-scrollbar pb-3.5"></div>
+</div>
+
+<div class="max-w-app mx-auto px-4" id="menuRoot"></div>
+
+<footer class="text-center text-muted text-[11px] py-8 pb-24 tracking-wide">
+  BARLEY significa CEBADA — la planta base de la cerveza.
+</footer>
+
+<button id="cartFab" class="hidden fixed left-4 right-4 bottom-4 max-w-app mx-auto bg-gold text-barbg border-0 rounded-2xl py-3.5 px-4.5 items-center justify-between font-bold text-sm shadow-[0_8px_24px_rgba(0,0,0,.45)] z-50 cursor-pointer">
+  <span><span id="cartCount" class="bg-barbg text-gold rounded-full py-0.5 px-2.5 font-mono2 mr-2">0</span>Ver pedido</span>
+  <span id="cartTotal">$0</span>
+</button>
+
+<div id="overlay" class="hidden fixed inset-0 bg-black/70 z-[60]"></div>
+
+<!-- Selector de mesa -->
+<div id="mesaSheet" class="fixed left-0 right-0 bottom-0 z-[61] bg-barsurface rounded-t-2xl max-h-[86vh] overflow-y-auto p-5 pb-8 translate-y-full transition-transform duration-300 ease-out">
+  <div class="w-10 h-1 bg-barline rounded-full mx-auto mb-4"></div>
+  <h2 class="font-display text-xl text-gold uppercase mb-3.5">¿Cuál es tu mesa?</h2>
+  <label class="text-xs text-muted uppercase tracking-wide">Número de mesa (1-50)</label>
+  <input type="text" inputmode="numeric" id="mesaInput" placeholder="Ej: 12"
+    class="w-full bg-barsurface2 border border-barline text-cream rounded-lg py-2.5 px-3 mt-1.5 font-body text-sm">
+  <button id="mesaConfirm" class="w-full bg-brick text-cream border-0 py-3.5 rounded-xl font-bold text-[15px] mt-3.5 cursor-pointer">Confirmar mesa</button>
+</div>
+
+<!-- Carrito -->
+<div id="cartSheet" class="fixed left-0 right-0 bottom-0 z-[61] bg-barsurface rounded-t-2xl max-h-[86vh] overflow-y-auto p-5 pb-8 translate-y-full transition-transform duration-300 ease-out">
+  <div class="w-10 h-1 bg-barline rounded-full mx-auto mb-4"></div>
+  <h2 class="font-display text-xl text-gold uppercase mb-3.5">Tu pedido — Mesa <span id="cartMesa">-</span></h2>
+  <div id="cartLines"></div>
+  <label class="block text-xs text-muted uppercase tracking-wide mt-3.5">Notas para cocina/barra (opcional)</label>
+  <textarea id="notas" rows="2" placeholder="Ej: sin cebolla, alergia a maní..."
+    class="w-full bg-barsurface2 border border-barline text-cream rounded-lg py-2.5 px-3 mt-1.5 font-body text-sm"></textarea>
+  <div class="flex justify-between items-center my-4 font-mono2 text-lg font-bold text-gold">
+    <span>Total</span><span id="cartTotalBig">$0</span>
+  </div>
+  <button id="sendOrder" class="w-full bg-brick text-cream border-0 py-3.5 rounded-xl font-bold text-[15px] cursor-pointer">Enviar pedido a la mesa</button>
+  <button id="closeCart" class="w-full bg-transparent text-muted border border-barline py-3 rounded-xl font-semibold text-sm mt-2 cursor-pointer">Seguir viendo el menú</button>
+</div>
+
+<div id="toast" class="hidden fixed top-4 left-1/2 -translate-x-1/2 bg-greenok text-[#101a0b] py-3 px-4.5 rounded-lg font-bold text-sm z-[80] shadow-[0_6px_18px_rgba(0,0,0,.4)] max-w-[calc(100%-32px)] text-center"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

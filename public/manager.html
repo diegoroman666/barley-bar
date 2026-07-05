@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barley · Panel de Pedidos</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="js/tailwind-config.js"></script>
+<link rel="stylesheet" href="css/extra.css">
+</head>
+<body class="bg-barbg text-cream font-body min-h-screen">
+
+<div id="loginView" class="max-w-[340px] mx-auto mt-[12vh] bg-barsurface border border-barline rounded-2xl p-6">
+  <h2 class="font-display text-2xl text-gold uppercase mb-4">Acceso Manager</h2>
+  <label class="text-xs text-muted uppercase tracking-wide">Usuario</label>
+  <input type="text" id="loginUser" placeholder="usuario"
+    class="w-full bg-barsurface2 border border-barline text-cream rounded-lg py-2.5 px-3 mt-1.5 text-sm">
+  <label class="block text-xs text-muted uppercase tracking-wide mt-3">Contraseña</label>
+  <input type="password" id="loginPass" placeholder="••••••••"
+    class="w-full bg-barsurface2 border border-barline text-cream rounded-lg py-2.5 px-3 mt-1.5 text-sm">
+  <button id="loginBtn" class="w-full bg-brick text-cream border-0 py-3.5 rounded-xl font-bold text-[15px] mt-4 cursor-pointer">Ingresar</button>
+  <div id="loginError" class="text-brick text-[12.5px] mt-2.5"></div>
+</div>
+
+<div class="max-w-[980px] mx-auto px-4 pt-5 pb-20 hidden" id="dashView">
+  <div class="flex justify-between items-center mb-4.5 flex-wrap gap-2.5">
+    <h1 class="font-display text-2xl text-gold uppercase">Pedidos en Barley</h1>
+    <button id="logoutBtn" class="bg-transparent border border-barline text-muted py-2 px-3.5 rounded-lg text-xs cursor-pointer">Cerrar sesión</button>
+  </div>
+  <div id="filters" class="flex gap-2 flex-wrap mb-4">
+    <button data-f="todos" class="filter-btn">Todos</button>
+    <button data-f="pendiente" class="filter-btn">Pendientes</button>
+    <button data-f="preparando" class="filter-btn">Preparando</button>
+    <button data-f="listo" class="filter-btn">Listos</button>
+    <button data-f="entregado" class="filter-btn">Entregados</button>
+  </div>
+  <div class="grid gap-3.5" style="grid-template-columns: repeat(auto-fill, minmax(280px,1fr));" id="ordersGrid"></div>
+</div>
+
+<script src="js/manager.js"></script>
+</body>
+</html>
