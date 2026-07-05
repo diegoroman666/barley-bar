@@ -52,6 +52,27 @@ async function deleteOrderById(id) {
   await ordersStore().delete(id);
 }
 
+// --- Netlify Blobs: sesión activa de cada mesa ---
+// Al "liberar" una mesa se rota su sessionId; los pedidos quedan con el
+// sessionId viejo y dejan de aparecer para los clientes de la mesa (aunque
+// el manager los sigue viendo en el historial completo).
+const mesaStore = () => getStore("barley-mesas");
+
+async function getMesaSessionId(mesa, { create = false } = {}) {
+  const key = String(mesa);
+  const existing = await mesaStore().get(key, { type: "json" });
+  if (existing && existing.sessionId) return existing.sessionId;
+  if (!create) return null;
+  const sessionId = crypto.randomUUID();
+  await mesaStore().setJSON(key, { sessionId, actualizado: new Date().toISOString() });
+  return sessionId;
+}
+
+async function liberarMesa(mesa) {
+  const sessionId = crypto.randomUUID();
+  await mesaStore().setJSON(String(mesa), { sessionId, actualizado: new Date().toISOString() });
+}
+
 // --- Sesiones de manager: tokens firmados sin estado (evita depender de la
 // consistencia de Blobs justo después del login) ---
 function signSession(expiresAt) {
@@ -95,10 +116,12 @@ router.post("/orders", async (req, res) => {
   }
 
   const total = items.reduce((sum, it) => sum + (Number(it.precio) || 0) * (Number(it.cantidad) || 1), 0);
+  const sessionId = await getMesaSessionId(mesaNum, { create: true });
 
   const nuevoPedido = {
     id: crypto.randomUUID(),
     mesa: mesaNum,
+    sessionId,
     cliente: cliente || null,
     items,
     notas: notas || "",
@@ -112,9 +135,32 @@ router.post("/orders", async (req, res) => {
   res.status(201).json(nuevoPedido);
 });
 
-// --- API pública: ver estado de los pedidos de una mesa ---
+// --- API pública: editar un pedido propio mientras siga "pendiente" ---
+router.patch("/orders/:id", async (req, res) => {
+  const { items, notas } = req.body;
+  const order = await getOrder(req.params.id);
+  if (!order) return res.status(404).json({ error: "Pedido no encontrado." });
+  if (order.estado !== "pendiente") {
+    return res.status(409).json({ error: "El pedido ya está en preparación y no se puede editar." });
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: "El pedido no tiene ítems." });
+  }
+  order.items = items;
+  order.notas = notas || "";
+  order.total = items.reduce((sum, it) => sum + (Number(it.precio) || 0) * (Number(it.cantidad) || 1), 0);
+  await saveOrder(order);
+  res.json(order);
+});
+
+// --- API pública: ver los pedidos vigentes (sesión actual) de una mesa ---
 router.get("/orders/mesa/:mesa", async (req, res) => {
-  const orders = (await listOrders()).filter((o) => o.mesa === Number(req.params.mesa));
+  const mesaNum = Number(req.params.mesa);
+  const sessionId = await getMesaSessionId(mesaNum, { create: false });
+  if (!sessionId) return res.json([]);
+  const orders = (await listOrders())
+    .filter((o) => o.mesa === mesaNum && o.sessionId === sessionId)
+    .sort((a, b) => new Date(a.creado) - new Date(b.creado));
   res.json(orders);
 });
 
@@ -155,6 +201,16 @@ router.patch("/manager/orders/:id", requireAuth, async (req, res) => {
 // --- API protegida: borrar un pedido ---
 router.delete("/manager/orders/:id", requireAuth, async (req, res) => {
   await deleteOrderById(req.params.id);
+  res.json({ ok: true });
+});
+
+// --- API protegida: liberar una mesa (arranca una sesión nueva para los próximos clientes) ---
+router.post("/manager/mesas/:mesa/liberar", requireAuth, async (req, res) => {
+  const mesaNum = Number(req.params.mesa);
+  if (!mesaNum || mesaNum < 1 || mesaNum > 50) {
+    return res.status(400).json({ error: "Número de mesa inválido." });
+  }
+  await liberarMesa(mesaNum);
   res.json({ ok: true });
 });
 

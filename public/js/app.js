@@ -3,6 +3,9 @@ const CLP = (n) => "$" + Number(n).toLocaleString("es-CL");
 let MENU = [];
 let cart = []; // { itemId, nombre, variante, precio, cantidad }
 let mesa = localStorage.getItem("barley_mesa") || null;
+let editingOrderId = null;
+let misPedidosTimer = null;
+const ESTADO_LABEL = { pendiente: "Pendiente", preparando: "Preparando", listo: "Listo", entregado: "Entregado" };
 
 const el = (id) => document.getElementById(id);
 const overlay = el("overlay");
@@ -35,6 +38,55 @@ function setMesa(n){
   localStorage.setItem("barley_mesa", n);
   el("mesaNum").textContent = n;
   el("cartMesa").textContent = n;
+  loadMisPedidos();
+  if (misPedidosTimer) clearInterval(misPedidosTimer);
+  misPedidosTimer = setInterval(loadMisPedidos, 8000);
+}
+
+// ---------- MIS PEDIDOS (pedidos vigentes de esta mesa) ----------
+async function loadMisPedidos(){
+  if (!mesa) return;
+  try {
+    const res = await fetch(`/api/orders/mesa/${mesa}`);
+    const orders = await res.json();
+    renderMisPedidos(orders);
+  } catch(err){
+    console.error(err);
+  }
+}
+
+function renderMisPedidos(orders){
+  const wrap = el("misPedidos");
+  const lista = el("misPedidosLista");
+  if (!orders.length){ wrap.classList.add("hidden"); return; }
+  wrap.classList.remove("hidden");
+  lista.innerHTML = "";
+  orders.forEach(order => {
+    const card = document.createElement("div");
+    card.className = "bg-barsurface border border-barline rounded-xl2 py-3 px-4 mb-2.5";
+    card.innerHTML = `
+      <div class="flex justify-between items-start mb-1.5">
+        <span class="font-mono2 text-xs uppercase tracking-wide text-muted">${ESTADO_LABEL[order.estado] || order.estado}</span>
+        <span class="font-mono2 font-bold text-gold text-sm">${CLP(order.total)}</span>
+      </div>
+      <div class="text-[13px] mb-2">
+        ${order.items.map(it => `<div class="flex justify-between py-0.5"><span>${it.cantidad}× ${it.nombre}</span><span>${CLP(it.precio * it.cantidad)}</span></div>`).join("")}
+      </div>
+      ${order.estado === "pendiente" ? `<button data-edit class="w-full bg-transparent text-gold border border-gold py-2 rounded-lg font-semibold text-xs cursor-pointer">Editar pedido</button>` : ""}
+    `;
+    const editBtn = card.querySelector("[data-edit]");
+    if (editBtn) editBtn.addEventListener("click", () => startEditOrder(order));
+    lista.appendChild(card);
+  });
+}
+
+function startEditOrder(order){
+  editingOrderId = order.id;
+  cart = order.items.map(it => ({ itemId: it.nombre, nombre: it.nombre, variante: null, precio: it.precio, cantidad: it.cantidad }));
+  el("notas").value = order.notas || "";
+  renderCartFab();
+  renderCartSheet();
+  openSheet(cartSheet);
 }
 
 el("capBtn").addEventListener("click", () => {
@@ -147,6 +199,7 @@ function renderCartFab(){
 
 function renderCartSheet(){
   el("cartMesa").textContent = mesa || "-";
+  el("sendOrder").textContent = editingOrderId ? "Guardar cambios" : "Enviar pedido a la mesa";
   const wrap = el("cartLines");
   wrap.innerHTML = "";
   if (cart.length === 0){
@@ -184,33 +237,39 @@ el("sendOrder").addEventListener("click", async () => {
   if (!mesa) { closeSheets(); openSheet(mesaSheet); showToast("Primero indica tu número de mesa"); return; }
   if (cart.length === 0) { showToast("Agrega al menos un producto"); return; }
 
-  const payload = {
-    mesa,
-    items: cart.map(l => ({ nombre: l.nombre + (l.variante ? ` (${l.variante})` : ""), precio: l.precio, cantidad: l.cantidad })),
-    notas: el("notas").value.trim(),
-  };
+  const items = cart.map(l => ({ nombre: l.nombre + (l.variante ? ` (${l.variante})` : ""), precio: l.precio, cantidad: l.cantidad }));
+  const notas = el("notas").value.trim();
 
   const btn = el("sendOrder");
   btn.disabled = true;
-  btn.textContent = "Enviando...";
+  btn.textContent = editingOrderId ? "Guardando..." : "Enviando...";
 
   try{
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = editingOrderId
+      ? await fetch(`/api/orders/${editingOrderId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items, notas }),
+        })
+      : await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mesa, items, notas }),
+        });
     if (!res.ok) throw new Error((await res.json()).error || "Error al enviar");
+    const wasEditing = Boolean(editingOrderId);
+    editingOrderId = null;
     cart = [];
     el("notas").value = "";
     renderCartFab();
     closeSheets();
-    showToast(`✅ Pedido enviado a mesa ${mesa}. ¡Ya llega a la barra!`);
+    loadMisPedidos();
+    showToast(wasEditing ? "✅ Pedido actualizado." : `✅ Pedido enviado a mesa ${mesa}. ¡Ya llega a la barra!`);
   } catch(err){
-    showToast("No se pudo enviar el pedido: " + err.message);
+    showToast("No se pudo enviar: " + err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = "Enviar pedido a la mesa";
+    btn.textContent = editingOrderId ? "Guardar cambios" : "Enviar pedido a la mesa";
   }
 });
 
@@ -220,7 +279,7 @@ async function init(){
   MENU = await res.json();
   renderMenu();
 
-  if (mesa) { el("mesaNum").textContent = mesa; el("cartMesa").textContent = mesa; }
+  if (mesa) { setMesa(mesa); }
   else { openSheet(mesaSheet); }
 }
 init();

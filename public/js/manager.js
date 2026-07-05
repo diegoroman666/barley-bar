@@ -99,6 +99,7 @@ function renderOrders(orders){
         </div>
         <div class="badge ${order.estado}">${order.estado}</div>
       </div>
+      <button class="liberar-btn" data-mesa="${order.mesa}" title="Liberar esta mesa para el próximo cliente">🔓 Liberar mesa ${order.mesa}</button>
       <div class="text-[13.5px] my-2.5">
         ${order.items.map(it => `<div class="flex justify-between py-0.5"><span>${it.cantidad}× ${it.nombre}</span><span>${CLP(it.precio * it.cantidad)}</span></div>`).join("")}
       </div>
@@ -117,9 +118,16 @@ function renderOrders(orders){
     });
 
     card.querySelector(".del-btn").addEventListener("click", () => deleteOrder(order.id));
+    card.querySelector(".liberar-btn").addEventListener("click", () => liberarMesa(order.mesa));
 
     grid.appendChild(card);
   });
+}
+
+async function liberarMesa(mesa){
+  if (!confirm(`¿Liberar la mesa ${mesa}? Los próximos clientes de esa mesa comenzarán un pedido nuevo.`)) return;
+  await fetch(`/api/manager/mesas/${mesa}/liberar`, { method: "POST", headers: {"x-manager-token": token} });
+  loadOrders();
 }
 
 async function updateEstado(id, estado){

@@ -41,3 +41,5 @@ html { -webkit-tap-highlight-color: transparent; }
 .step-btn.current{ background:#e3a548; color:#171310; border-color:#e3a548; }
 
 .del-btn{ position:absolute; top:12px; right:12px; background:none; border:none; color:#a4967d; font-size:16px; cursor:pointer; }
+
+.liberar-btn{ width:100%; margin-top:8px; background:none; border:1px solid #3a2f22; color:#7a9b5e; font-size:11.5px; font-weight:700; padding:8px 6px; border-radius:8px; cursor:pointer; }
